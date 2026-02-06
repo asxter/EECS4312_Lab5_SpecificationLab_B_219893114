@@ -2,9 +2,530 @@
 ## Student ID: 
 
 Prompt 1: "Copy paste your question"
+
+Is Resource Allocation Feasible Lab Repository
+
+This repository contains the starter code, templates, and tests for the Requirements Specification II lab. Students will implement implement a function to determine the feasibility of resrouce allocation, write specifications, and explore the impact of requirements completeness on AI‑assisted coding.
+System Description
+
+You are asked to implement a Python function that determines whether a set of resource requests can be satisfied given limited capacity. The function takes as input a list of requests and available resources and returns whether a valid allocation exists. The goal is to determine feasibility of allocation based on the provided information. You may assume inputs are provided in a reasonable and consistent format. You may use ChatGPT to assist with reasoning about the problem, generating code, or writing tests.
+Structure
+
+    src/solution.py – starter file where you implement is_allocation_feasible. Do not rename this file.
+    test_solution.py – Public tests you can run to check basic correctness. Use a test runner such as pytest to execute these tests.
+
+Running Tests
+
+    Install Python 3 if not already installed.
+    Implement your solution in solution.py.
+    Optionally create student_tests.py and write at least 5 test cases.
+    Run tests using:
+
+pytest file_name.py
+
+    Fix any failing tests before moving on. Remember that hidden tests will check additional requirements.
+## Student Name:
+## Student ID: 
+
+"""
+Stub file for the is allocation feasible exercise.
+
+Implement the function is_allocation_feasible to  Determine whether a set of resource requests can be satisfied 
+given limited capacities. Take int account any possible constraints. See the lab handout
+for full requirements.
+"""
+    
+from typing import Dict, List, Union
+
+Number = Union[int, float]
+
+
+def is_allocation_feasible(
+    resources: Dict[str, Number],
+    requests: List[Dict[str, Number]]
+) -> bool:
+    """
+    Determine whether a set of resource requests can be satisfied given limited capacities.
+
+    Args:
+        resources : Dict[str, Number], Mapping from resource name to total available capacity.
+        requests : List[Dict[str, Number]], List of requests. Each request is a mapping from resource name to the amount required.
+
+    Returns:
+        True if the allocation is feasible, False otherwise.
+
+    """
+    # TODO: Implement this function
+    raise NotImplementedError("suggest_slots function has not been implemented yet")
+## Student Name:
+## Student ID: 
+
+"""
+Public test suite for the meeting slot suggestion exercise.
+
+Students can run these tests locally to check basic correctness of their implementation.
+The hidden test suite used for grading contains additional edge cases and will not be
+available to students.
+"""
+from solution import is_allocation_feasible
+import pytest
+
+
+def test_basic_feasible_single_resource():
+    # Basic Feasible Single-Resource
+    # Constraint: total demand <= capacity
+    # Reason: check basic functional requirement
+    resources = {'cpu': 10}
+    requests = [{'cpu': 3}, {'cpu': 4}, {'cpu': 3}]
+    assert is_allocation_feasible(resources, requests) is True
+
+def test_multi_resource_infeasible_one_overloaded():
+    # Multi-Resource Infeasible (one overload)
+    # Constraint: one resource exceeds capacity
+    # Reason: check detection of per-resource infeasibility
+    resources = {'cpu': 8, 'mem': 30}
+    requests = [{'cpu': 2, 'mem': 8}, {'cpu': 3, 'mem': 10}, {'cpu': 3, 'mem': 14}]
+    assert is_allocation_feasible(resources, requests) is False
+
+def test_missing_resource_in_availability():
+    # Missing Resource in Requests
+    # Constraint: request references unavailable resource
+    # Reason: allocation must be infeasible
+    resources = {'cpu': 10}
+    requests = [{'cpu': 2}, {'gpu': 1}]
+    assert is_allocation_feasible(resources, requests) is False
+
+def test_non_dict_request_raises():
+    # Non-Dict Request Raises Error
+    # Constraint: structural validation
+    # Reason: request must be a dict
+    resources = {'cpu': 5}
+    requests = [{'cpu': 2}, ['mem', 1]]  # malformed request
+    with pytest.raises(ValueError):
+        is_allocation_feasible(resources, requests)
+
+"""TODO: Add at least 5 additional test cases to test your implementation."""
+Check and also write contingencies for for negative resources and requestes, missing resource/request entry, so take it as null?, test the datatypes, also look for other edge cases and possible failure points and fix them, Give the solution.py code and tests code based on the question requirements
+
 LLM Response 1: "Copy paste LLMs response"
 
---------------------------------------------------
-Prompt 2: "Copy paste your question"
-LLM Response 2: "Copy paste LLMs response"
---------------------------------------------------
+Below is a robust solution.py plus an expanded test file (your provided public tests + 10 additional edge-case tests). This design is consistent with the public tests and adds explicit contingencies for negatives, missing entries, datatype issues, and other common failure points.
+
+src/solution.py
+"""
+Stub file for the is_allocation_feasible exercise.
+
+Implement the function `is_allocation_feasible` to determine whether a set of resource requests
+can be satisfied given limited capacities.
+"""
+
+from __future__ import annotations
+
+from typing import Dict, List, Union
+import math
+
+Number = Union[int, float]
+
+
+def _is_valid_number(x) -> bool:
+    """True for int/float (not bool), finite, and not NaN."""
+    if isinstance(x, bool):
+        return False
+    if not isinstance(x, (int, float)):
+        return False
+    return math.isfinite(x)
+
+
+def is_allocation_feasible(
+    resources: Dict[str, Number],
+    requests: List[Dict[str, Number]]
+) -> bool:
+    """
+    Determine whether a set of resource requests can be satisfied given limited capacities.
+
+    Interpretation used (matches public tests):
+    - Allocation is feasible iff, for every resource key in `resources`,
+      the SUM of all request amounts for that resource <= capacity.
+    - If any request references a resource not present in `resources`, infeasible (False).
+    - Missing resource entries inside a request are treated as 0 (no demand).
+    - A request value of None is treated as 0 (null -> no demand), per user contingency request.
+    - Negative capacities or negative demands are invalid -> ValueError.
+    - Non-dict requests, non-dict resources, or non-numeric values -> ValueError.
+    - NaN/Inf are invalid -> ValueError.
+
+    Returns:
+        True if feasible, False otherwise.
+    """
+    # Structural validation
+    if not isinstance(resources, dict):
+        raise ValueError("resources must be a dict[str, number].")
+    if not isinstance(requests, list):
+        raise ValueError("requests must be a list[dict[str, number]].")
+
+    # Validate resources: keys must be str, values must be finite numbers >= 0
+    for k, cap in resources.items():
+        if not isinstance(k, str):
+            raise ValueError("resource names must be strings.")
+        if cap is None:
+            raise ValueError(f"capacity for resource '{k}' cannot be None.")
+        if not _is_valid_number(cap):
+            raise ValueError(f"capacity for resource '{k}' must be a finite number.")
+        if cap < 0:
+            raise ValueError(f"capacity for resource '{k}' cannot be negative.")
+
+    # Aggregate demand per resource
+    demand: Dict[str, float] = {k: 0.0 for k in resources.keys()}
+
+    for idx, req in enumerate(requests):
+        if not isinstance(req, dict):
+            raise ValueError(f"request at index {idx} must be a dict[str, number].")
+
+        for rname, amount in req.items():
+            if not isinstance(rname, str):
+                raise ValueError(f"resource name in request at index {idx} must be a string.")
+
+            # If request references unavailable resource -> infeasible
+            if rname not in resources:
+                return False
+
+            # "null" contingency: treat None as 0 demand
+            if amount is None:
+                continue
+
+            if not _is_valid_number(amount):
+                raise ValueError(
+                    f"amount for resource '{rname}' in request at index {idx} must be a finite number."
+                )
+            if amount < 0:
+                raise ValueError(
+                    f"amount for resource '{rname}' in request at index {idx} cannot be negative."
+                )
+
+            demand[rname] += float(amount)
+
+            # Early exit if already exceeded
+            if demand[rname] > float(resources[rname]):
+                return False
+
+    return True
+
+test_solution.py (public tests + added edge cases)
+"""
+Public test suite for the resource allocation feasibility exercise.
+
+Run:
+pytest test_solution.py
+"""
+
+from solution import is_allocation_feasible
+import pytest
+import math
+
+
+def test_basic_feasible_single_resource():
+    resources = {'cpu': 10}
+    requests = [{'cpu': 3}, {'cpu': 4}, {'cpu': 3}]
+    assert is_allocation_feasible(resources, requests) is True
+
+
+def test_multi_resource_infeasible_one_overloaded():
+    resources = {'cpu': 8, 'mem': 30}
+    requests = [{'cpu': 2, 'mem': 8}, {'cpu': 3, 'mem': 10}, {'cpu': 3, 'mem': 14}]
+    assert is_allocation_feasible(resources, requests) is False
+
+
+def test_missing_resource_in_availability():
+    resources = {'cpu': 10}
+    requests = [{'cpu': 2}, {'gpu': 1}]
+    assert is_allocation_feasible(resources, requests) is False
+
+
+def test_non_dict_request_raises():
+    resources = {'cpu': 5}
+    requests = [{'cpu': 2}, ['mem', 1]]  # malformed request
+    with pytest.raises(ValueError):
+        is_allocation_feasible(resources, requests)
+
+
+# -------------------------
+# Additional student tests
+# -------------------------
+
+def test_empty_requests_is_feasible():
+    resources = {'cpu': 0, 'mem': 10}
+    requests = []
+    assert is_allocation_feasible(resources, requests) is True
+
+
+def test_empty_resources_with_empty_requests_is_feasible():
+    resources = {}
+    requests = []
+    assert is_allocation_feasible(resources, requests) is True
+
+
+def test_empty_resources_with_positive_request_is_infeasible():
+    resources = {}
+    requests = [{'cpu': 1}]
+    assert is_allocation_feasible(resources, requests) is False
+
+
+def test_missing_entry_in_request_treated_as_zero():
+    # request doesn't mention 'mem' => treated as 0 for mem, still feasible
+    resources = {'cpu': 5, 'mem': 5}
+    requests = [{'cpu': 2}, {'mem': 5}]
+    assert is_allocation_feasible(resources, requests) is True
+
+
+def test_none_amount_in_request_treated_as_zero():
+    resources = {'cpu': 5}
+    requests = [{'cpu': None}, {'cpu': 5}]
+    assert is_allocation_feasible(resources, requests) is True
+
+
+def test_negative_capacity_raises():
+    resources = {'cpu': -1}
+    requests = [{'cpu': 0}]
+    with pytest.raises(ValueError):
+        is_allocation_feasible(resources, requests)
+
+
+def test_negative_request_amount_raises():
+    resources = {'cpu': 10}
+    requests = [{'cpu': -2}]
+    with pytest.raises(ValueError):
+        is_allocation_feasible(resources, requests)
+
+
+def test_non_numeric_capacity_raises():
+    resources = {'cpu': "10"}  # invalid type
+    requests = [{'cpu': 1}]
+    with pytest.raises(ValueError):
+        is_allocation_feasible(resources, requests)
+
+
+def test_non_numeric_request_amount_raises():
+    resources = {'cpu': 10}
+    requests = [{'cpu': "2"}]
+    with pytest.raises(ValueError):
+        is_allocation_feasible(resources, requests)
+
+
+def test_nan_or_inf_raises():
+    resources = {'cpu': 10}
+    with pytest.raises(ValueError):
+        is_allocation_feasible(resources, [{'cpu': math.nan}])
+    with pytest.raises(ValueError):
+        is_allocation_feasible(resources, [{'cpu': math.inf}])
+
+
+def test_float_amounts_supported():
+    resources = {'cpu': 1.5}
+    requests = [{'cpu': 0.5}, {'cpu': 1.0}]
+    assert is_allocation_feasible(resources, requests) is True
+
+
+def test_resource_names_must_be_strings():
+    resources = {123: 10}  # invalid key type
+    requests = [{'cpu': 1}]
+    with pytest.raises(ValueError):
+        is_allocation_feasible(resources, requests)
+
+
+def test_requests_must_be_list():
+    resources = {'cpu': 10}
+    requests = {'cpu': 1}  # not a list
+    with pytest.raises(ValueError):
+        is_allocation_feasible(resources, requests)
+
+Notes on the “null/missing entry” contingency (what I implemented)
+
+Missing key in a request (e.g., request is {cpu:2} with resources {cpu, mem}) ⇒ treated as 0 for missing resources.
+
+None value in a request (e.g., {cpu: None}) ⇒ treated as 0 demand.
+
+Resource not in availability (e.g., request uses gpu but resources has no gpu) ⇒ False (matches your public test).
+
+If your lab handout defines “null” differently (e.g., null should raise), tell me what it says and I’ll adjust the code + tests accordingly.
+
+Prompt 2
+im using vscode, give terminal code to run the files, names are solution2.py, test_solution2.py
+Response 2
+Here’s exactly what to run in VS Code’s integrated terminal, assuming you’re in the folder that contains solution2.py and test_solution2.py.
+
+1️⃣ (One-time) Create & activate a virtual environment (recommended)
+Linux / macOS
+python3 -m venv venv
+source venv/bin/activate
+
+Windows (PowerShell)
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+2️⃣ Install pytest (if not already installed)
+pip install pytest
+
+
+Verify:
+
+pytest --version
+
+3️⃣ Run the public + student tests
+pytest test_solution2.py
+
+
+If everything is correct, you should see:
+
+==================== test session starts ====================
+collected XX items
+
+test_solution2.py ..............
+==================== XX passed ====================
+
+4️⃣ Common fixes if something fails
+❌ ModuleNotFoundError: No module named 'solution'
+
+Your test file likely has:
+
+from solution import is_allocation_feasible
+
+
+Change it to:
+
+from solution2 import is_allocation_feasible
+
+❌ command not found: pytest
+
+Use:
+
+python -m pytest test_solution2.py
+
+5️⃣ Optional: run a single test (useful for debugging)
+pytest test_solution2.py::test_basic_feasible_single_resource
+
+6️⃣ Optional: show print output / more detail
+pytest -v -s test_solution2.py
+
+
+If you want, I can also:
+
+set up a VS Code launch configuration
+
+add coverage (pytest --cov)
+
+mirror the hidden test philosophy to harden your solution further
+
+give all terminal code at once for copy/paste
+
+Here is one clean, copy-paste block you can run directly in the VS Code terminal.
+This works on Linux / macOS. (Windows version is below.)
+
+✅ Linux / macOS (VS Code terminal)
+# go to your project directory (edit if needed)
+cd path/to/your/project
+
+# create virtual environment (one-time)
+python3 -m venv venv
+
+# activate virtual environment
+source venv/bin/activate
+
+# upgrade pip
+pip install --upgrade pip
+
+# install pytest
+pip install pytest
+
+# run the tests
+pytest test_solution2.py
+
+✅ Windows (PowerShell in VS Code)
+# go to your project directory (edit if needed)
+cd path\to\your\project
+
+# create virtual environment (one-time)
+python -m venv venv
+
+# activate virtual environment
+.\venv\Scripts\Activate.ps1
+
+# upgrade pip
+pip install --upgrade pip
+
+# install pytest
+pip install pytest
+
+# run the tests
+pytest test_solution2.py
+
+🔧 Backup (if pytest command not found)
+python -m pytest test_solution2.py
+
+⚠️ Quick sanity check
+
+Make sure test_solution2.py contains:
+
+from solution2 import is_allocation_feasible
+
+
+(not from solution import ...)
+
+If you want, I can also give:
+
+a single-line version (no venv)
+
+a Makefile
+
+a VS Code task (tasks.json) so you can run tests with one click
+
+Prompt 3
+ImportError while importing test module '/eecs/home/a12/test_solution2.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/cs/local/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_solution2.py:8: in <module>
+    from solution import is_allocation_feasible
+E   ModuleNotFoundError: No module named 'solution'
+============================================== short test summary info ==============================================
+ERROR test_solution2.py
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+================================================= 1 error in 0.28s ==================================================
+ptlb05 305 % 
+ptlb05 305 % 
+
+Response 3
+Your test file is importing the wrong module name.
+
+Right now it says:
+
+from solution import is_allocation_feasible
+
+
+…but your file is solution2.py, so it must be:
+
+from solution2 import is_allocation_feasible
+
+Fix (terminal commands)
+# go where the files are (adjust path if needed)
+cd /eecs/home/a12
+
+# confirm files exist
+ls -l solution2.py test_solution2.py
+
+# edit the import line
+sed -i 's/^from solution import /from solution2 import /' test_solution2.py
+
+# verify the change
+grep -n "from solution" test_solution2.py
+grep -n "from solution2" test_solution2.py
+
+# run tests
+python3 -m pytest -q test_solution2.py
+
+If sed -i errors (some systems), do this instead:
+perl -pi -e 's/^from solution import /from solution2 import /' test_solution2.py
+python3 -m pytest -q test_solution2.py
+
+
+That should resolve the collection error immediately.
