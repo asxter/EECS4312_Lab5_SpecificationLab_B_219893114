@@ -1,6 +1,5 @@
-## TODO:
-## Student Name:
-## Student ID: 
+## Student Name: Anirudh Sundar
+## Student ID: 219893114
 
 # Is Resource Allocation Feasible Lab Repository
 
