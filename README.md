@@ -1,4 +1,19 @@
+# Resource Allocation Feasibility
 
+## Student
+Name: Anirudh Sundar  
+Student ID: 219893114
+
+---
+
+## System Description
+
+This module determines whether a collection of resource requests can be satisfied
+given fixed resource capacities.
+
+The function under test:
+
+is_allocation_feasible(resources, requests) -> bool
 evaluates whether an allocation is possible while enforcing safety,
 consistency, and validation rules.
 
