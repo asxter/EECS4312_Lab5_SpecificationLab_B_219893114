@@ -1,32 +1,99 @@
-## TODO:
-## Student Name:
-## Student ID: 
 
-# Is Resource Allocation Feasible Lab Repository
+evaluates whether an allocation is possible while enforcing safety,
+consistency, and validation rules.
 
-This repository contains the starter code, templates, and tests for the **Requirements Specification II** lab. Students will implement implement a function to determine the feasibility of resrouce allocation, write specifications, and explore the impact of requirements completeness on AI‑assisted coding.
+---
 
-## System Description
-You are asked to implement a Python function that determines whether a set of resource requests can be satisfied given limited capacity. The function takes as input a list of requests and available resources and returns whether a valid allocation exists. The goal is to determine feasibility of allocation based on the provided information. You may assume inputs are provided in a reasonable and consistent format. You may use ChatGPT to assist with reasoning about the problem, generating code, or writing tests. 
+## Interpretation of Feasibility
 
-## Structure
+An allocation is feasible if **all** of the following hold:
 
-- **src/solution.py** – starter file where you implement `is_allocation_feasible`. Do not rename this file.
-- **test_solution.py** – Public tests you can run to check basic correctness. Use a test runner such as `pytest` to execute these tests.
+1. For every resource, the total requested amount does not exceed capacity.
+2. Requests may omit resources → treated as zero demand.
+3. A request value of `None` is treated as zero demand.
+4. Resource matching is **case-insensitive**.
+5. After allocation, **at least one resource must have ≥ 1 full unit remaining**.
 
+If no resource has at least one complete unit remaining, the allocation fails.
 
-## Running Tests
+---
 
-1. Install Python 3 if not already installed.
-2. Implement your solution in `solution.py`.
-3. Optionally create `student_tests.py` and write at least 5 test cases.
-4. Run tests using:
+## Invariants
 
-```bash
-pytest file_name.py
-```
+The system maintains these invariants:
 
-5. Fix any failing tests before moving on. Remember that hidden tests will check additional requirements.
+- Capacities are finite real numbers.
+- Capacities are non-negative.
+- Demands are finite real numbers.
+- Demands are non-negative.
+- Resource identifiers are strings.
+- No duplicate resource names after case normalization.
+- Unknown resources in a request make the allocation infeasible.
 
-## Submitting Your Work
-Follow the instruction in the manual.
+---
+
+## Failure Modes
+
+The function returns **False** when:
+
+- Any request references a missing resource.
+- The total demand exceeds capacity.
+- After allocation, every resource has less than one unit remaining.
+- There are no resources at all (cannot leave ≥ 1).
+
+The function raises **ValueError** when:
+
+- Structures are malformed (wrong types).
+- Keys are not strings.
+- Numeric values are invalid.
+- Values are negative.
+- NaN or infinite numbers appear.
+- Case-insensitive duplicates exist in resource definitions.
+
+---
+
+## Examples
+
+| Resources | Requests | Remaining | Result |
+|----------|----------|-----------|--------|
+| {cpu:10} | {cpu:9} | 1 | True |
+| {cpu:10} | {cpu:10} | 0 | False |
+| {cpu:10,gpu:10} | {cpu:10,gpu:9} | 0,1 | True |
+| {cpu:10,gpu:10} | {cpu:9.8,gpu:9.2} | 0.2,0.8 | False |
+| {} | {} | none | False |
+
+---
+
+## Test Coverage
+
+The test suite verifies:
+
+- Normal successful allocations  
+- Boundary conditions around 1 unit remaining  
+- Aggregation across multiple requests  
+- Case-insensitive behavior  
+- Missing resources  
+- Structural validation  
+- Invalid numeric types  
+- NaN / infinity rejection  
+- Negative values  
+- Duplicate normalized keys  
+
+---
+
+## Complexity
+
+Let:
+- `R` = number of resources  
+- `N` = number of requests  
+- `K` = average resources per request  
+
+Time complexity: **O(N × K)**  
+Space complexity: **O(R)**
+
+---
+
+## Notes
+
+The implementation uses early exit on overload for efficiency and
+normalizes resource identifiers using `casefold()` to ensure robust matching.
